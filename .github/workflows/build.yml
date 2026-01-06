@@ -20,7 +20,7 @@ jobs:
             zlib1g-dev libgstreamer1.0 \
             gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
             libffi-dev openjdk-17-jdk unzip zip autoconf libtool \
-            libltdl-dev
+            libltdl-dev libunwind-dev
 
       - name: Install Buildozer & Cython
         run: |
@@ -45,7 +45,6 @@ jobs:
 
       - name: Build with Buildozer
         run: |
-          # yes | akceptuje licencje automatycznie
           yes | buildozer android debug
 
       - name: Upload APK
