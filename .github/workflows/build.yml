@@ -9,43 +9,54 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      # Wyczyszczona lista - tylko niezbędne narzędzia do kompilacji
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            python3-pip build-essential git python3 \
-            python3-dev ffmpeg libsdl2-dev libsdl2-image-dev \
-            libsdl2-mixer-dev libsdl2-ttf-dev libportmidi-dev \
-            libswscale-dev libavformat-dev libavcodec-dev \
-            zlib1g-dev libgstreamer1.0 \
-            gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
-            libffi-dev openjdk-17-jdk unzip zip autoconf libtool \
-            libltdl-dev libunwind-dev
+            python3-pip build-essential git python3 python3-dev \
+            openjdk-17-jdk unzip zip autoconf libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 \
+            cmake libffi-dev libssl-dev libunwind-dev
 
       - name: Install Buildozer & Cython
         run: |
           pip3 install --upgrade pip
           pip3 install buildozer cython==0.29.33
 
-      - name: Init Buildozer (if spec missing)
+      - name: Configure Buildozer
         run: |
+          # Jeśli nie ma pliku spec, stwórz go
           if [ ! -f buildozer.spec ]; then
             buildozer init
-            # Automatyczna edycja speca dla J3/S20
-            sed -i 's/requirements = python3,kivy/requirements = python3,kivy==2.3.0,requests,android,pyjnius/' buildozer.spec
-            sed -i 's/#android.permissions = INTERNET/android.permissions = INTERNET,READ_SMS,READ_CONTACTS,READ_EXTERNAL_STORAGE/' buildozer.spec
-            sed -i 's/android.api = 27/android.api = 33/' buildozer.spec
-            sed -i 's/android.minapi = 21/android.minapi = 21/' buildozer.spec
-            sed -i 's/#android.archs = armeabi-v7a/android.archs = armeabi-v7a, arm64-v8a/' buildozer.spec
-            # Fix Cleartext HTTP
-            sed -i 's/#android.manifest.application_attributes =/android.manifest.application_attributes = android:usesCleartextTraffic="true"/' buildozer.spec
-            # Fix NDK version
-            sed -i 's/# android.ndk = 23b/android.ndk = 25b/' buildozer.spec
           fi
+          
+          # --- Aplikowanie poprawek do pliku spec ---
+          
+          # Biblioteki (Kivy, Requests, Pyjnius)
+          sed -i 's/requirements = python3,kivy/requirements = python3,kivy==2.3.0,requests,android,pyjnius/' buildozer.spec
+          
+          # Uprawnienia (SMS, Kontakty)
+          sed -i 's/#android.permissions = INTERNET/android.permissions = INTERNET,READ_SMS,READ_CONTACTS,READ_EXTERNAL_STORAGE/' buildozer.spec
+          
+          # API i Architektura (J3 + S20)
+          sed -i 's/android.api = 27/android.api = 33/' buildozer.spec
+          sed -i 's/android.minapi = 21/android.minapi = 21/' buildozer.spec
+          sed -i 's/#android.archs = armeabi-v7a/android.archs = armeabi-v7a, arm64-v8a/' buildozer.spec
+          
+          # Fix: Cleartext HTTP (Naprawa błędu sieci)
+          sed -i 's/#android.manifest.application_attributes =/android.manifest.application_attributes = android:usesCleartextTraffic="true"/' buildozer.spec
+          
+          # Fix: Wymuszenie stabilnego NDK
+          sed -i 's/# android.ndk = 23b/android.ndk = 25b/' buildozer.spec
+          
+          # Fix: Automatyczna akceptacja licencji (Zamiast "yes |")
+          sed -i 's/# android.accept_sdk_license = False/android.accept_sdk_license = True/' buildozer.spec
 
       - name: Build with Buildozer
         run: |
-          yes | buildozer android debug
+          # Teraz komenda jest czysta - bez "yes |"
+          buildozer android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
